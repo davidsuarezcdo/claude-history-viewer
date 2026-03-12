@@ -151,8 +151,9 @@ export default function HistoryViewer() {
     setSelectedProject('')
   }
 
-  const copySessionId = async (id: string) => {
-    await navigator.clipboard.writeText(id)
+  const copySessionId = async (id: string, project: string) => {
+    const command = `cd ${project} && claude --dangerously-skip-permissions --resume ${id}`
+    await navigator.clipboard.writeText(command)
     setCopiedId(true)
     setTimeout(() => setCopiedId(false), 2000)
   }
@@ -374,8 +375,8 @@ export default function HistoryViewer() {
                   <span className="text-claude-border">→</span>
                   <span>{format(selectedSession.lastTimestamp, 'dd MMM yyyy HH:mm', { locale: es })}</span>
                   <button
-                    onClick={() => copySessionId(selectedSession.sessionId)}
-                    title={selectedSession.sessionId}
+                    onClick={() => copySessionId(selectedSession.sessionId, selectedSession.project)}
+                    title={`cd ${selectedSession.project} && claude --dangerously-skip-permissions --resume ${selectedSession.sessionId}`}
                     className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-claude-card border border-claude-border
                                hover:border-claude-accent hover:text-claude-text transition-colors font-mono"
                   >
