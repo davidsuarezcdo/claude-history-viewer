@@ -374,6 +374,16 @@ export default function HistoryViewer() {
                   </span>
                   <span className="text-claude-border">→</span>
                   <span>{format(selectedSession.lastTimestamp, 'dd MMM yyyy HH:mm', { locale: es })}</span>
+                  <span className="text-claude-border">·</span>
+                  <span>{(() => {
+                    const ms = selectedSession.lastTimestamp - selectedSession.firstTimestamp
+                    const mins = Math.floor(ms / 60000)
+                    if (mins < 1) return 'menos de 1 min'
+                    if (mins < 60) return `${mins} min`
+                    const hrs = Math.floor(mins / 60)
+                    const rem = mins % 60
+                    return rem > 0 ? `${hrs}h ${rem}m` : `${hrs}h`
+                  })()}</span>
                   <button
                     onClick={() => copySessionId(selectedSession.sessionId, selectedSession.project)}
                     title={`cd ${selectedSession.project} && claude --dangerously-skip-permissions --resume ${selectedSession.sessionId}`}
