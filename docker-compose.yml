@@ -1,0 +1,19 @@
+services:
+  claude-history-viewer:
+    build: .
+    container_name: claude-history-viewer
+    ports:
+      - "3210:3000"
+    # Corre como el usuario del host para poder leer history.jsonl (permisos 600)
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - HISTORY_FILE=/data/history.jsonl
+    volumes:
+      # Monta el archivo de historial de Claude como read-only
+      - ${HOME}/.claude/history.jsonl:/data/history.jsonl:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/history"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
