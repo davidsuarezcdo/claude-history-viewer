@@ -82,7 +82,7 @@ export default function HistoryViewer() {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'messages'>('recent')
-  const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
+  const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week' | 'month'>('today')
   const [copiedId, setCopiedId] = useState(false)
 
   // Debounce search
