@@ -14,6 +14,10 @@ import {
   AlertCircle,
   X,
   Hash,
+  Copy,
+  Check,
+  ArrowUpDown,
+  CalendarDays,
 } from 'lucide-react'
 
 interface HistoryEntry {
@@ -77,6 +81,9 @@ export default function HistoryViewer() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set())
   const [selectedProject, setSelectedProject] = useState<string>('')
+  const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'messages'>('recent')
+  const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
+  const [copiedId, setCopiedId] = useState(false)
 
   // Debounce search
   useEffect(() => {
@@ -144,6 +151,33 @@ export default function HistoryViewer() {
     setSelectedProject('')
   }
 
+  const copySessionId = async (id: string) => {
+    await navigator.clipboard.writeText(id)
+    setCopiedId(true)
+    setTimeout(() => setCopiedId(false), 2000)
+  }
+
+  // Compute time boundary for filter
+  const getTimeBoundary = (): number => {
+    const now = Date.now()
+    if (timeFilter === 'today') return now - 24 * 60 * 60 * 1000
+    if (timeFilter === 'week') return now - 7 * 24 * 60 * 60 * 1000
+    if (timeFilter === 'month') return now - 30 * 24 * 60 * 60 * 1000
+    return 0
+  }
+
+  const filteredGroups = (data?.groups ?? []).map((group) => {
+    const boundary = getTimeBoundary()
+    const sessions = group.sessions
+      .filter((s) => s.lastTimestamp >= boundary)
+      .sort((a, b) => {
+        if (sortBy === 'oldest') return a.lastTimestamp - b.lastTimestamp
+        if (sortBy === 'messages') return b.messageCount - a.messageCount
+        return b.lastTimestamp - a.lastTimestamp // recent (default)
+      })
+    return { ...group, sessions }
+  }).filter((group) => group.sessions.length > 0)
+
   return (
     <div className="flex h-screen overflow-hidden bg-claude-bg text-claude-text">
       {/* Sidebar */}
@@ -177,6 +211,35 @@ export default function HistoryViewer() {
                 <X size={14} />
               </button>
             )}
+          </div>
+
+          {/* Sort + Time filter */}
+          <div className="flex gap-2 mt-2">
+            <div className="flex items-center gap-1 flex-1 bg-claude-card border border-claude-border rounded-lg px-2 py-1.5">
+              <ArrowUpDown size={11} className="text-claude-muted flex-shrink-0" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="flex-1 bg-transparent text-xs text-claude-text focus:outline-none cursor-pointer"
+              >
+                <option value="recent">Más reciente</option>
+                <option value="oldest">Más antigua</option>
+                <option value="messages">Más mensajes</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1 flex-1 bg-claude-card border border-claude-border rounded-lg px-2 py-1.5">
+              <CalendarDays size={11} className="text-claude-muted flex-shrink-0" />
+              <select
+                value={timeFilter}
+                onChange={(e) => setTimeFilter(e.target.value as typeof timeFilter)}
+                className="flex-1 bg-transparent text-xs text-claude-text focus:outline-none cursor-pointer"
+              >
+                <option value="all">Todo</option>
+                <option value="today">Hoy</option>
+                <option value="week">7 días</option>
+                <option value="month">30 días</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -224,7 +287,7 @@ export default function HistoryViewer() {
             </div>
           )}
 
-          {!loading && data?.groups.map((group) => (
+          {!loading && filteredGroups.map((group) => (
             <div key={group.project}>
               {/* Project header */}
               <button
@@ -279,7 +342,7 @@ export default function HistoryViewer() {
             </div>
           ))}
 
-          {!loading && data?.groups.length === 0 && (
+          {!loading && filteredGroups.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-claude-muted text-sm">
               <MessageSquare size={32} className="mb-3 opacity-30" />
               <p>Sin resultados</p>
@@ -310,6 +373,20 @@ export default function HistoryViewer() {
                   </span>
                   <span className="text-claude-border">→</span>
                   <span>{format(selectedSession.lastTimestamp, 'dd MMM yyyy HH:mm', { locale: es })}</span>
+                  <button
+                    onClick={() => copySessionId(selectedSession.sessionId)}
+                    title={selectedSession.sessionId}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-claude-card border border-claude-border
+                               hover:border-claude-accent hover:text-claude-text transition-colors font-mono"
+                  >
+                    {copiedId
+                      ? <Check size={10} className="text-green-400" />
+                      : <Copy size={10} />
+                    }
+                    <span className={copiedId ? 'text-green-400' : ''}>
+                      {copiedId ? 'copiado' : selectedSession.sessionId.slice(0, 8)}
+                    </span>
+                  </button>
                 </div>
               </div>
               <button
